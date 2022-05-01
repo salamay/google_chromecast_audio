@@ -5,8 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 class GoogleCastButton extends StatelessWidget {
   final double size;
-  final ChromeCastController castcontroller;
-  const GoogleCastButton({Key? key, required this.size,required this.castcontroller}) : super(key: key);
+  const GoogleCastButton({Key? key, required this.size}) : super(key: key);
   @override
   Widget build(BuildContext context) {
    return SizedBox(
@@ -41,17 +40,4 @@ class GoogleCastButton extends StatelessWidget {
     }
   }
 }
-class ChromeCastController{
 
-  Future<void> loadAudio(String url)async {
-
-  }
-
-  Future<void> play(String url)async {
-
-  }
-  Future<void> pause(String url)async {
-
-  }
-
-}

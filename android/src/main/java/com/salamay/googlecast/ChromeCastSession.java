@@ -45,6 +45,9 @@ public class ChromeCastSession implements EventChannel.StreamHandler{
 
     public void loadMedia(AudioData audioData){
         Log.i(TAG,"LOAD MEDIA");
+        mCastSession = mSessionManager.getCurrentCastSession();
+        Log.i(TAG,audioData.getAudioUrl());
+        Log.i(TAG,"mCastSession:"+mCastSession);
 
         if(mCastSession!=null){
             MediaMetadata audioMetaData = new MediaMetadata(MediaMetadata.MEDIA_TYPE_MUSIC_TRACK);
@@ -57,7 +60,9 @@ public class ChromeCastSession implements EventChannel.StreamHandler{
                     .setMetadata(audioMetaData)
                     .build();
             remoteMediaClient = mCastSession.getRemoteMediaClient();
+            assert remoteMediaClient != null;
             remoteMediaClient.load(new MediaLoadRequestData.Builder().setMediaInfo(mediaInfo).build());
+            playMedia();
         }
     }
 
@@ -114,6 +119,8 @@ public class ChromeCastSession implements EventChannel.StreamHandler{
         @Override
         public void onSessionStarted(@NonNull CastSession castSession, @NonNull String s) {
             Log.i(TAG,"SESSION STARTED");
+            mCastSession = castSession;
+
 
         }
 

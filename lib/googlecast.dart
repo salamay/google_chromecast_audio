@@ -14,9 +14,14 @@ class GoogleChromeCast {
     final String? version = await _channel.invokeMethod('getPlatformVersion');
     return version;
   }
+
   Stream<bool> connectionState(){
     connectionstream=connection_state_channel.receiveBroadcastStream().map<bool>((event) => event);
     return connectionstream;
+  }
+
+  static Future<void>castAudio(var metadata) async {
+    final String? version = await _channel.invokeMethod('loadAudio',metadata);
   }
 
 }
