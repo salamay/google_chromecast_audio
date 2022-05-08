@@ -25,11 +25,16 @@ class CastController{
     }
   }
 
-  Future<void> play(String url)async {
-
+  Future<void> play()async{
+    await GoogleChromeCast.playAudio();
   }
-  Future<void> pause(String url)async {
 
+  Future<void> pause()async {
+    await GoogleChromeCast.pauseAudio();
+  }
+
+  Future<void> stop()async {
+    await GoogleChromeCast.stopAudio();
   }
 
 }

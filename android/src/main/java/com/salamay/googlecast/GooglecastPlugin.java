@@ -1,6 +1,10 @@
 package com.salamay.googlecast;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import com.salamay.googlecast.ChromeCastViewFactory;
@@ -29,16 +33,19 @@ public class GooglecastPlugin implements FlutterPlugin, MethodCallHandler,Activi
   private Activity activity;
   private String TAG="GooglecastPlugin";
   private ChromeCastSession chromeCastSession;
-  private ChromeCastViewFactory chromeCastViewFactory;
+  private ChromeCastSreamHandler chromeCastSreamHandler;
   private static final String chromecastconnectionstate="com.salamay.googlecast/connectionstate";
+  private static final String chromecastmediamessage="com.salamay.googlecast/messagestream";
+  private EventChannel connectionstatechanenel;
+  private EventChannel messagestatechannel;
+  private BroadcastReceiver br;
   @Override
   public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
     channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "googlecast");
     channel.setMethodCallHandler(this);
-    chromeCastViewFactory=new ChromeCastViewFactory();
-    flutterPluginBinding.getPlatformViewRegistry()
-            .registerViewFactory("ChromeCastButton",chromeCastViewFactory);
-    new EventChannel(flutterPluginBinding.getBinaryMessenger(),chromecastconnectionstate).setStreamHandler(chromeCastSession);
+    flutterPluginBinding.getPlatformViewRegistry().registerViewFactory("ChromeCastButton",new ChromeCastViewFactory());
+    connectionstatechanenel=new EventChannel(flutterPluginBinding.getBinaryMessenger(),chromecastconnectionstate);
+    messagestatechannel=new EventChannel(flutterPluginBinding.getBinaryMessenger(), chromecastmediamessage);
   }
 
   @Override
@@ -49,47 +56,63 @@ public class GooglecastPlugin implements FlutterPlugin, MethodCallHandler,Activi
       if(call.hasArgument("url")){
         loadAudio(call);
       }
+    }else if(call.method.equals("playAudio")){
+      playAudio();
+    }else if(call.method.equals("pauseAudio")){
+      pauseAudio();
+    }else if(call.method.equals("stopAudio")){
+      stopMedia();
     }
     else {
       result.notImplemented();
     }
   }
 
+
   @Override
   public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
-    channel.setMethodCallHandler(null);
+
   }
-
-
-
 
   @Override
   public void  onAttachedToActivity(@NonNull ActivityPluginBinding  binding) {
+    setupResources(binding);
+  }
+  public void setupResources(@NonNull ActivityPluginBinding binding){
     Log.i(TAG,"ON ATTACHED TO ACTIVITY");
     activity = binding.getActivity();
     ChromeCastViewFactory.activity=activity;
-    System.out.println("INITIALIZING GOOGLE CAST CONTEXT");
-    chromeCastSession=new ChromeCastSession(activity.getApplicationContext());
+    chromeCastSession=new ChromeCastSession(activity);
+    chromeCastSreamHandler= new ChromeCastSreamHandler();
+    connectionstatechanenel.setStreamHandler(chromeCastSession);
+    messagestatechannel.setStreamHandler(chromeCastSreamHandler);
+    br = chromeCastSreamHandler;
+    IntentFilter filter = new IntentFilter(ChromeCastSession.ACTION);
+    activity.getApplicationContext().registerReceiver(br, filter);
   }
-
+  public void freeResources(){
+    Log.i(TAG,"ON DETACHED TO ACTIVITY");
+    activity.unregisterReceiver(br);
+    channel.setMethodCallHandler(null);
+    connectionstatechanenel.setStreamHandler(null);
+    messagestatechannel.setStreamHandler(null);
+    chromeCastSession.removeSessionListener();
+    activity = null;
+  }
   @Override
   public void onDetachedFromActivityForConfigChanges() {
-    activity = null;
+    freeResources();
   }
 
   @Override
   public void onReattachedToActivityForConfigChanges(@NonNull ActivityPluginBinding  binding) {
     Log.i(TAG,"ON RE-ATTACHED TO ACTIVITY");
-
-    activity = binding.getActivity();
-    chromeCastSession.addSessionListener();
+    setupResources(binding);
   }
 
   @Override
   public void onDetachedFromActivity() {
-    Log.i(TAG,"ON DETACHED TO ACTIVITY");
-    activity = null;
-    chromeCastSession.removeSessionListener();
+   freeResources();
   }
 
   private void loadAudio(MethodCall call){
@@ -107,5 +130,39 @@ public class GooglecastPlugin implements FlutterPlugin, MethodCallHandler,Activi
     audioData.setImgUrl(imgUrl);
     audioData.setAudioUrl(url);
     chromeCastSession.loadMedia(audioData);
+  }
+  
+  private void playAudio(){
+    chromeCastSession.playMedia();
+  }
+  private void pauseAudio(){
+    chromeCastSession.pauseMedia();
+  }
+  private void stopMedia(){
+    chromeCastSession.stopMedia();
+  }
+
+
+  public static class ChromeCastSreamHandler extends BroadcastReceiver implements EventChannel.StreamHandler {
+    private EventChannel.EventSink eventSink;
+    @Override
+    public void onListen(Object o, EventChannel.EventSink eventSink) {
+      this.eventSink=eventSink;
+      
+    }
+
+    @Override
+    public void onCancel(Object o) {
+      eventSink=null;
+    }
+    @Override
+    public void onReceive(Context context, Intent intent) {
+      if(intent!=null){
+        String data=intent.getStringExtra("message");
+        if(data!=null&&eventSink!=null){
+          eventSink.success(data);
+        }
+      }
+    }
   }
 }
