@@ -13,6 +13,7 @@ import com.google.android.gms.cast.CastDevice;
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaLoadRequestData;
 import com.google.android.gms.cast.MediaMetadata;
+import com.google.android.gms.cast.MediaStatus;
 import com.google.android.gms.cast.framework.CastContext;
 import com.google.android.gms.cast.framework.CastSession;
 import com.google.android.gms.cast.framework.SessionManager;
@@ -43,14 +44,28 @@ public class ChromeCastSession implements EventChannel.StreamHandler{
     private static final int PAUSED=3;
     private static final int BUFFERING=4;
     private static final int LOADING=5;
+    private int PLAYBACKSTATE=1;
 
     public ChromeCastSession(Context context){
         this.context=context;
         mSessionManager = CastContext.getSharedInstance(context).getSessionManager();
         mSessionManagerListener = new ChromeCastSessionListener();
         mSessionManager.addSessionManagerListener(mSessionManagerListener, CastSession.class);
+        mCastSession=mSessionManager.getCurrentCastSession();
+        if(mCastSession!=null){
+            updateStatus();
+            startSession(mCastSession);
+        }
     }
-
+    public void endSession(){
+        if(mSessionManager!=null){
+            if(remoteMediaClient!=null){
+                remoteMediaClient.stop();
+            }
+            mSessionManager.endCurrentSession(true);
+            mCastSession=null;
+        }
+    }
     public void removeSessionListener(){
         mSessionManager.removeSessionManagerListener(mSessionManagerListener, CastSession.class);
         mCastSession = null;
@@ -81,7 +96,9 @@ public class ChromeCastSession implements EventChannel.StreamHandler{
         Log.i(TAG,"PLAY MEDIA");
         if(mCastSession!=null){
             if (remoteMediaClient != null) {
-                remoteMediaClient.play();
+                if(PLAYBACKSTATE!=BUFFERING||PLAYBACKSTATE!=LOADING){
+                    remoteMediaClient.play();
+                }
             }
         }
     }
@@ -90,8 +107,11 @@ public class ChromeCastSession implements EventChannel.StreamHandler{
         Log.i(TAG,"PAUSE MEDIA");
         if(mCastSession!=null){
             if (remoteMediaClient != null) {
-                remoteMediaClient.pause();
-                Log.i(TAG,"PAUSED");
+                if(PLAYBACKSTATE!=BUFFERING||PLAYBACKSTATE!=LOADING){
+                    remoteMediaClient.pause();
+                    Log.i(TAG,"PAUSED");
+                }
+
             }
         }
     }
@@ -107,6 +127,11 @@ public class ChromeCastSession implements EventChannel.StreamHandler{
     @Override
     public void onListen(Object o, EventChannel.EventSink eventSink) {
         this.connectionEvent=eventSink;
+        if(mCastSession!=null){
+            if(connectionEvent!=null){
+                connectionEvent.success(true);
+            }
+        }
         Log.i(TAG,"LISTENING TO CHROMECAST STREAM");
     }
 
@@ -114,14 +139,60 @@ public class ChromeCastSession implements EventChannel.StreamHandler{
     public void onCancel(Object o) {
         connectionEvent=null;
     }
+    public void startSession(CastSession castSession){
+        mCastSession = castSession;
+        remoteMediaClient = castSession.getRemoteMediaClient();
+        assert remoteMediaClient != null;
+        remoteMediaClient.registerCallback(new RemoteMediaClient.Callback() {
+            @Override
+            public void onStatusUpdated() {
+                super.onStatusUpdated();
+                updateStatus();
+            }
+        });
+        if(connectionEvent!=null){
+            if (mCastSession.isConnected()){
 
+                connectionEvent.success(true);
+            }else{
+                connectionEvent.success(false);
+            }
+
+        }
+    }
+    public void updateStatus(){
+        int playerState=remoteMediaClient.getPlayerState();
+        PLAYBACKSTATE=playerState;
+        Intent intent=new Intent();
+        intent.setAction(ACTION);
+        if(playerState==IDLE){
+            intent.putExtra("message","IDLE");
+            Log.i(TAG,"SENDING BROADCAST: STATUS IDLE");
+        }else if(playerState==PLAYING){
+            intent.putExtra("message","PLAYING");
+            Log.i(TAG,"SENDING BROADCAST: STATUS PLAYING");
+        }else if(playerState==PAUSED){
+            intent.putExtra("message","PAUSED");
+            Log.i(TAG,"SENDING BROADCAST: STATUS PAUSED");
+        }else if(playerState==BUFFERING){
+            intent.putExtra("message","BUFFERING");
+            Log.i(TAG,"SENDING BROADCAST: STATUS BUFFERING");
+            playMedia();
+        }else if(playerState==LOADING){
+            intent.putExtra("message","LOADING");
+            Log.i(TAG,"SENDING BROADCAST: STATUS LOADING");
+        }else if(playerState==UNKNOWN){
+            intent.putExtra("message","UNKNOWN");
+            Log.i(TAG,"SENDING BROADCAST: STATUS UNKNOWN");
+        }
+        context.sendBroadcast(intent);
+    }
     private class ChromeCastSessionListener implements SessionManagerListener<CastSession>{
 
         @Override
         public void onSessionResumed(@NonNull CastSession castSession, boolean b) {
             Log.i(TAG,"SESSION RESUMED");
-            mCastSession = castSession;
-            remoteMediaClient = castSession.getRemoteMediaClient();
+            startSession(castSession);
         }
 
         @Override
@@ -138,41 +209,7 @@ public class ChromeCastSession implements EventChannel.StreamHandler{
         @Override
         public void onSessionStarted(@NonNull CastSession castSession, @NonNull String s) {
             Log.i(TAG,"SESSION STARTED "+s);
-            mCastSession = castSession;
-            if(connectionEvent!=null){
-                connectionEvent.success(true);
-            }
-            remoteMediaClient = castSession.getRemoteMediaClient();
-            assert remoteMediaClient != null;
-            remoteMediaClient.registerCallback(new RemoteMediaClient.Callback() {
-                @Override
-                public void onStatusUpdated() {
-                    super.onStatusUpdated();
-                    int playerState=remoteMediaClient.getPlayerState();
-                    Intent intent=new Intent();
-                    intent.setAction(ACTION);
-                    if(playerState==IDLE){
-                        intent.putExtra("message","IDLE");
-                        Log.i(TAG,"SENDING BROADCAST: STATUS IDLE");
-                    }else if(playerState==PLAYING){
-                        intent.putExtra("message","PLAYING");
-                        Log.i(TAG,"SENDING BROADCAST: STATUS PLAYING");
-                    }else if(playerState==PAUSED){
-                        intent.putExtra("message","PAUSED");
-                        Log.i(TAG,"SENDING BROADCAST: STATUS PAUSED");
-                    }else if(playerState==BUFFERING){
-                        intent.putExtra("message","BUFFERING");
-                        Log.i(TAG,"SENDING BROADCAST: STATUS BUFFERING");
-                    }else if(playerState==LOADING){
-                        intent.putExtra("message","LOADING");
-                        Log.i(TAG,"SENDING BROADCAST: STATUS LOADING");
-                    }else if(playerState==UNKNOWN){
-                        intent.putExtra("message","UNKNOWN");
-                        Log.i(TAG,"SENDING BROADCAST: STATUS UNKNOWN");
-                    }
-                    context.sendBroadcast(intent);
-                }
-            });
+            startSession(castSession);
         }
 
         @Override

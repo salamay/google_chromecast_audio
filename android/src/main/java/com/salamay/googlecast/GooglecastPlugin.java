@@ -71,7 +71,7 @@ public class GooglecastPlugin implements FlutterPlugin, MethodCallHandler,Activi
 
   @Override
   public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
-
+    chromeCastSession.endSession();
   }
 
   @Override
@@ -92,12 +92,16 @@ public class GooglecastPlugin implements FlutterPlugin, MethodCallHandler,Activi
   }
   public void freeResources(){
     Log.i(TAG,"ON DETACHED TO ACTIVITY");
-    activity.unregisterReceiver(br);
-    channel.setMethodCallHandler(null);
-    connectionstatechanenel.setStreamHandler(null);
-    messagestatechannel.setStreamHandler(null);
-    chromeCastSession.removeSessionListener();
-    activity = null;
+    try{
+      activity.getApplicationContext().unregisterReceiver(br);
+      channel.setMethodCallHandler(null);
+      connectionstatechanenel.setStreamHandler(null);
+      messagestatechannel.setStreamHandler(null);
+      chromeCastSession.removeSessionListener();
+      activity = null;
+    }catch (Exception e){
+      Log.i(TAG,e.toString());
+    }
   }
   @Override
   public void onDetachedFromActivityForConfigChanges() {
