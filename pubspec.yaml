@@ -1,7 +1,7 @@
 name: googlecast
 description: A flutter plugin for audio only chromecast discovery and media playback
 version: 0.0.1
-homepage:
+homepage: https://github.com/salamay/google_chromecast_audio
 
 environment:
   sdk: ">=2.15.1 <3.0.0"
