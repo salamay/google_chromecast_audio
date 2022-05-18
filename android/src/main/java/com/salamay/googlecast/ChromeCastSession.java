@@ -2,30 +2,23 @@ package com.salamay.googlecast;
 
 import android.content.Context;
 import android.content.Intent;
-import android.media.session.PlaybackState;
 import android.net.Uri;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.google.android.gms.cast.Cast;
-import com.google.android.gms.cast.CastDevice;
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaLoadRequestData;
 import com.google.android.gms.cast.MediaMetadata;
-import com.google.android.gms.cast.MediaStatus;
 import com.google.android.gms.cast.framework.CastContext;
 import com.google.android.gms.cast.framework.CastSession;
 import com.google.android.gms.cast.framework.SessionManager;
 import com.google.android.gms.cast.framework.SessionManagerListener;
 import com.google.android.gms.cast.framework.media.RemoteMediaClient;
-import com.google.android.gms.cast.framework.zzat;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.common.images.WebImage;
 import com.salamay.googlecast.Model.AudioData;
-
-import java.io.IOException;
 
 import io.flutter.plugin.common.EventChannel;
 
@@ -88,7 +81,22 @@ public class ChromeCastSession implements EventChannel.StreamHandler{
                     .setContentType("audio/mp3")
                     .setMetadata(audioMetaData)
                     .build();
-            remoteMediaClient.load(new MediaLoadRequestData.Builder().setMediaInfo(mediaInfo).setAutoplay(true).build());
+            PendingResult<RemoteMediaClient.MediaChannelResult> s=remoteMediaClient.load(new MediaLoadRequestData.Builder().setMediaInfo(mediaInfo).setAutoplay(true).build());
+            s.addStatusListener(new PendingResult.StatusListener() {
+                @Override
+                public void onComplete(@NonNull Status status) {
+                    System.out.println(status.getStatus());
+                    int STATUS_CODE=status.getStatusCode();
+                    System.out.println(status.getStatusCode());
+                   if(STATUS_CODE==2100||STATUS_CODE==2001||STATUS_CODE==2104||STATUS_CODE==7){
+                       Intent intent=new Intent();
+                       intent.setAction(ACTION);
+                       intent.putExtra("message","ERROR");
+                       Log.i(TAG,"SENDING BROADCAST: STATUS ERROR");
+                       context.sendBroadcast(intent);
+                   }
+                }
+            });
         }
     }
 
@@ -157,12 +165,12 @@ public class ChromeCastSession implements EventChannel.StreamHandler{
             }else{
                 connectionEvent.success(false);
             }
-
         }
     }
     public void updateStatus(){
         int playerState=remoteMediaClient.getPlayerState();
         PLAYBACKSTATE=playerState;
+        System.out.println(PLAYBACKSTATE);
         Intent intent=new Intent();
         intent.setAction(ACTION);
         if(playerState==IDLE){
@@ -177,7 +185,6 @@ public class ChromeCastSession implements EventChannel.StreamHandler{
         }else if(playerState==BUFFERING){
             intent.putExtra("message","BUFFERING");
             Log.i(TAG,"SENDING BROADCAST: STATUS BUFFERING");
-            playMedia();
         }else if(playerState==LOADING){
             intent.putExtra("message","LOADING");
             Log.i(TAG,"SENDING BROADCAST: STATUS LOADING");
