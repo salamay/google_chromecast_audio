@@ -8,8 +8,10 @@ A flutter plugin to connect to audio only chrome cast e.g Google Nest Mini e.t.c
     - Pause.
     - Stop.
 
-## Getting Started
+## Getting Started.
+
 1) Add the google cast sdk dependencies to your build.gradle file.
+
     implementation 'com.google.android.gms:play-services-cast-framework:21.0.1'
     implementation 'com.google.android.exoplayer:extension-cast:2.11.5'
 
@@ -63,7 +65,8 @@ Note: "CC1AD845" application id is the default Media Receiver Application id. If
    
 ##Usage
 1) import 'package:googlecast/CastController.dart';
-2) Create Cast controller
+2) Create Cast controller.
+
       CastController castController=new CastController();
       
 3) Set media item
