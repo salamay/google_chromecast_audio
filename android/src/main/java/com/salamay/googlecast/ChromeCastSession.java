@@ -185,6 +185,7 @@ public class ChromeCastSession implements EventChannel.StreamHandler{
         }else if(playerState==BUFFERING){
             intent.putExtra("message","BUFFERING");
             Log.i(TAG,"SENDING BROADCAST: STATUS BUFFERING");
+            playMedia();
         }else if(playerState==LOADING){
             intent.putExtra("message","LOADING");
             Log.i(TAG,"SENDING BROADCAST: STATUS LOADING");
