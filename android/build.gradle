@@ -38,6 +38,6 @@ dependencies {
     implementation "androidx.mediarouter:mediarouter:1.2.5"
     implementation 'com.google.android.gms:play-services-cast-framework:21.0.1'
     implementation 'com.android.support.constraint:constraint-layout:2.0.1'
-    //implementation files('C:/Users/Home/Desktop/Flutter 2.8/flutter/bin/cache/artifacts/engine/android-x64/flutter.jar')
+    //implementation files('C:/Users/Home/Desktop/Flutter 2.10.05/flutter/bin/cache/artifacts/engine/android-x64/flutter.jar')
 
 }
