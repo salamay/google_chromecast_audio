@@ -4,8 +4,8 @@ version: 0.0.1
 homepage: https://github.com/salamay/google_chromecast_audio
 
 environment:
-  sdk: ">=2.15.1 <3.0.0"
-  flutter: ">=2.5.0"
+  sdk: ">=3.0.0"
+  flutter: ">=3.35.5"
 
 dependencies:
   flutter:
@@ -34,9 +34,9 @@ flutter:
         pluginClass: GooglecastPlugin
       ios:
         pluginClass: GooglecastPlugin
-      web:
-        pluginClass: GooglecastWeb
-        fileName: googlecast_web.dart
+#      web:
+#        pluginClass: GooglecastWeb
+#        fileName: googlecast_web.dart
 
   # To add assets to your plugin package, add an assets section, like this:
   # assets:

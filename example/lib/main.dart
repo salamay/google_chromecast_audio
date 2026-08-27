@@ -31,7 +31,7 @@ class _MyAppState extends State<MyApp> {
     // We also handle the message potentially returning null.
     try {
       platformVersion =
-          await Googlecast.platformVersion ?? 'Unknown platform version';
+           'Unknown platform version';
     } on PlatformException {
       platformVersion = 'Failed to get platform version.';
     }
